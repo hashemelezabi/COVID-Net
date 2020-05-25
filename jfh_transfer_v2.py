@@ -21,8 +21,9 @@ def generate_dataset():
 									class_weights=[1., 1., COVID_WEIGHT],
 									top_percent=TOP_PERCENT)
 
-	batch_x, batch_y, weights = next(generator)
-	return (batch_x, batch_y, weights)
+	# batch_x, batch_y, weights = next(generator)
+	# return (batch_x, batch_y, weights)
+	return generator
 
 def generate_test_dataset():
 	generator = BalanceCovidDataset(data_dir='data',
@@ -34,8 +35,9 @@ def generate_test_dataset():
 									top_percent=TOP_PERCENT,
 									is_training=False)
 
-	batch_x, batch_y, weights = next(generator)
-	return (batch_x, batch_y, weights)
+	# batch_x, batch_y, weights = next(generator)
+	# return (batch_x, batch_y, weights)
+	return generator
 
 def load_base_model():
 	IMG_SHAPE = (IMG_SIZE, IMG_SIZE, 3)
@@ -60,16 +62,19 @@ def modify_base_model(base_model, learning_rate):
 		metrics=['accuracy'])
 	return model
 
-def evaluate_model(model, test_img_batch, test_label_batch):
+def evaluate_model(model, train_gen, test_gen):
 	initial_epochs = 10
-	validation_steps=20
-	print(test_label_batch.shape)
-	loss0,accuracy0 = model.evaluate(test_img_batch, test_label_batch, steps = validation_steps)
+
+	loss0,accuracy0 = model.evaluate(test_gen)
 	print("initial loss: {:.2f}".format(loss0))
 	print("initial accuracy: {:.2f}".format(accuracy0))
 
+	history = model.fit(train_gen,
+                 epochs=initial_epochs,
+                 validation_data=test_gen)
+
 if __name__ == '__main__':
-	batch_x, batch_y, weights = generate_dataset()
+	# batch_x, batch_y, weights = generate_dataset()
 	model = load_base_model()
 	# print(model.summary())
 
@@ -84,8 +89,9 @@ if __name__ == '__main__':
 	model = modify_base_model(model, learning_rate=.0001)
 	print(model.summary())
 
-	test_img_batch, test_label_batch, _ = generate_test_dataset()
-	evaluate_model(model, test_img_batch, test_label_batch)
+	train_generator = generate_dataset()
+	test_generator = generate_test_dataset()
+	evaluate_model(model, train_generator, test_generator)
 
 
 
